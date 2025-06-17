@@ -28,21 +28,29 @@ Developed a LangChain-based agentic application that automatically processes F1 
 
 ☘️Folder Structure:
 
-f1-reels-generator/
-├── main.py
+F1_AI_Reels/
+├── .devcontainer/
+├── .streamlit/
+│   └── secrets.toml
+├── .venv/
+├── __pycache__/
 ├── agents/
 │   ├── downloader.py
-│   ├── clip_extractor.py
-│   ├── captioner.py
-│   ├── music_suggester.py
-│   └── merger.py
+│   ├── merger.py
+│   └── spotify_trending.py
+├── output/
+│   └── (highlighted clips & final reels go here)
+├── temp/
 ├── utils/
 │   ├── video_utils.py
-│   ├── audio_utils.py
-│   └── helpers.py
-├── static/
-│   └── music/
-├── output/
-│   └── final_reels/
+│   └── audio_utils.py
+├── app.py                     # Main Streamlit app
+├── captioner.py              # Highlight extractor
+├── hashtag_generator.py      # Hashtag suggester
+├── index.html                
+├── main.py                   
+├── music_recommender.py      # Music suggestion logic (Spotify)
+├── README.md
 ├── requirements.txt
-└── README.md
+└── test_app.py               # Optional test script
+
