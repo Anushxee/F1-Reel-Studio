@@ -1,56 +1,44 @@
-# F1_AI_Reels_Generator
+# F1 Reel Studio
 
-☘️AI-Powered Instagram Reel Generator for F1 Highlights
+An explainable local-first Streamlit app for finding active moments in video footage and exporting vertical 1080×1920 MP4 reels.
 
-Developed a LangChain-based agentic application that automatically processes F1 race videos to extract highlights, suggests trending music and hashtags using OpenAI’s GPT-4, and produces Instagram-ready Reels. Implemented video/audio processing, AI-based content creation, and an end-to-end media pipeline.
+## Run it
 
-☘️Initial Ideas:
-→ Automated detection of interesting video segments from uploaded race videos/URLs
+1. Install FFmpeg and make `ffmpeg` and `ffprobe` available on your PATH.
+2. Create and activate a Python 3.10+ virtual environment.
+3. Run `pip install -r requirements.txt`.
+4. Optional: set `OPENAI_API_KEY` to refine the publishing copy.
+5. Start with `streamlit run app.py`.
 
-→ Integration with GPT-4 for content analysis
+## Deploy a public demo
 
-→ Utilizes FFmpeg and OpenCV for video processing
+This repository includes a production Docker image and is ready for a Streamlit-compatible container host. Render is a good fit for a recruiter demo because it can build directly from the `Dockerfile`, deploy from a connected Git repository, and give the service an HTTPS `onrender.com` URL.
 
-→ Supports image and video editing
+1. Push this project to a private or public GitHub repository. Confirm that `.streamlit/secrets.toml` is **not** committed.
+2. In Render, create **New → Web Service**, connect the repository, and select the Docker runtime. Render builds the included `Dockerfile` automatically.
+3. Select an instance with enough memory for OpenCV and Whisper. The first Whisper transcription can download the selected model, so a paid always-on instance is recommended for a public demonstration.
+4. Set these environment variables in the Render dashboard:
 
-→ Generates Reels from simple text prompts☘
+   - `OPENAI_API_KEY` — optional; enables AI-refined publishing copy.
+   - `WHISPER_MODEL=base` — optional; this is the default and balances speed with accuracy.
+   - `PORT=10000` — optional; the container already defaults to it.
 
+5. Deploy and use the generated HTTPS URL in your portfolio. Render requires public services to bind to `0.0.0.0` and its `PORT`; the Docker command already does both.
 
-☘️Features/Uses:
-☞ Takes F1 race media (YouTube links, uploads, etc.)
+The deployed app has a 300 MB upload limit and uses temporary container storage. That is appropriate for an interactive demo: the creator uploads a clip, downloads the finished reel, and the host can discard temporary files after a restart. Do not present it as a multi-user production SaaS yet.
 
-☞ Extracts highlights (e.g. overtakes, crashes)
+### Before accepting public users
 
-☞ Suggests music + generates hashtags/captions
+Add authentication, rate limiting, virus/media validation, object storage for uploads/exports, a background job queue, a database, and deletion/retention controls. Those upgrades turn this into a scalable product rather than a portfolio demo.
 
-☞ Outputs an Instagram-ready reel
+## What it does
 
+- Scores sampled frames by visual motion and presents non-overlapping highlight candidates.
+- Lets you choose a candidate and provide a concise, accurate caption.
+- Optionally transcribes the uploaded footage locally with Whisper (the model downloads on first use).
+- Renders H.264/AAC, 1080×1920, 30fps MP4 with captions in Instagram's safe lower area.
+- Creates a download-ready video plus caption and hashtag copy. OpenAI is optional; it has a useful offline fallback.
 
-☘️Folder Structure:
+## Important publishing notes
 
-F1_AI_Reels/
-├── .devcontainer/
-├── .streamlit/
-│   └── secrets.toml
-├── .venv/
-├── __pycache__/
-├── agents/
-│   ├── downloader.py
-│   ├── merger.py
-│   └── spotify_trending.py
-├── output/
-│   └── (highlighted clips & final reels go here)
-├── temp/
-├── utils/
-│   ├── video_utils.py
-│   └── audio_utils.py
-├── app.py                     # Main Streamlit app
-├── captioner.py              # Highlight extractor
-├── hashtag_generator.py      # Hashtag suggester
-├── index.html                
-├── main.py                   
-├── music_recommender.py      # Music suggestion logic (Spotify)
-├── README.md
-├── requirements.txt
-└── test_app.py               # Optional test script
-
+Use footage you own or have licensed. F1 broadcasts, team marks, driver likenesses, and commercial songs can require permissions; this app deliberately does not download third-party videos or add unlicensed music. Select licensed audio in Instagram's library or use a royalty-free licence suitable for commercial social media use. Earnings and reach also depend on platform eligibility and content rights, so no tool can guarantee monetisation.

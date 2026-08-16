@@ -1,7 +1,5 @@
-moviepy
-yt-dlp
-openai
-langchain
-pydub
-numpy
-opencv-python
+streamlit>=1.38
+numpy>=1.26
+opencv-python-headless>=4.10
+openai>=1.40
+openai-whisper>=20240930

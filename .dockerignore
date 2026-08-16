@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+**/__pycache__
+.streamlit/secrets.toml
+temp
+output
+*.pyc
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3

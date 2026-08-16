@@ -1,1 +1,13 @@
 .streamlit/secrets.toml
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+temp/
+output/
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
