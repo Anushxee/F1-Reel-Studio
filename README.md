@@ -27,6 +27,23 @@ This repository includes a production Docker image and is ready for a Streamlit-
 
 The deployed app has a 300 MB upload limit and uses temporary container storage. That is appropriate for an interactive demo: the creator uploads a clip, downloads the finished reel, and the host can discard temporary files after a restart. Do not present it as a multi-user production SaaS yet.
 
+### Free Streamlit Community Cloud deployment
+
+For a no-cost public portfolio demo, deploy this repository on Streamlit Community Cloud instead of Netlify. Community Cloud runs the actual Streamlit server and reads `requirements.txt` plus `packages.txt`; the latter installs FFmpeg and the Linux libraries used by OpenCV.
+
+1. Visit [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
+2. Select **Create app** → **Yup, I have an app**.
+3. Select the `Anushxee/F1-Reel-Studio` repository, branch `main`, and entrypoint file `app.py`.
+4. In **Advanced settings**, select Python `3.11`, choose a memorable subdomain, and optionally add this secret if you want AI-refined publishing copy:
+
+   ```toml
+   OPENAI_API_KEY = "your-key-here"
+   ```
+
+5. Click **Deploy** and watch the build log. The first Whisper transcription downloads its model, so use a short test clip for the first run.
+
+Community Cloud is free but resource-limited. It is suitable for a recruiter demonstration and short uploads, not concurrent processing or long race footage. Never commit a `secrets.toml` file containing a real API key.
+
 ### Before accepting public users
 
 Add authentication, rate limiting, virus/media validation, object storage for uploads/exports, a background job queue, a database, and deletion/retention controls. Those upgrades turn this into a scalable product rather than a portfolio demo.
