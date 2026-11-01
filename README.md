@@ -46,3 +46,7 @@ Add authentication, rate limiting, virus/media validation, object storage for up
 ## Important publishing notes
 
 Use footage you own or have licensed. F1 broadcasts, team marks, driver likenesses, and commercial songs can require permissions; this app deliberately does not download third-party videos or add unlicensed music. Select licensed audio in Instagram's library or use a royalty-free licence suitable for commercial social media use. Earnings and reach also depend on platform eligibility and content rights, so no tool can guarantee monetisation.
+
+
+
+<img width="954" height="411" alt="image" src="https://github.com/user-attachments/assets/b1c91f05-0147-4264-95fc-c78a5d826704" />
