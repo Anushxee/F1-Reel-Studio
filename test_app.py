@@ -4,7 +4,8 @@ import tempfile
 import unittest
 
 from agents.metadata import create_metadata
-from agents.reel_builder import write_srt
+from agents.reel_builder import write_ass_overlay, write_srt
+from agents.transcription import CaptionCue
 
 
 class ReelStudioSmokeTests(unittest.TestCase):
@@ -19,6 +20,22 @@ class ReelStudioSmokeTests(unittest.TestCase):
             result = write_srt("A short caption for the reel", 8, target)
             self.assertEqual(result, target)
             self.assertIn("00:00:08,000", target.read_text(encoding="utf-8"))
+
+    def test_word_timed_brand_overlay_is_written(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "overlay.ass"
+            result = write_ass_overlay(
+                [CaptionCue(0.1, 0.4, "Wheel"), CaptionCue(0.5, 0.9, "to wheel")],
+                5,
+                target,
+                "Last lap chaos",
+                "@f1studio",
+                "Race Red",
+            )
+            contents = target.read_text(encoding="utf-8-sig")
+            self.assertEqual(result, target)
+            self.assertIn("Last lap chaos", contents)
+            self.assertIn("WHEEL", contents)
 
 
 if __name__ == "__main__":

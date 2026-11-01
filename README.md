@@ -36,6 +36,10 @@ Add authentication, rate limiting, virus/media validation, object storage for up
 - Scores sampled frames by visual motion and presents non-overlapping highlight candidates.
 - Lets you choose a candidate and provide a concise, accurate caption.
 - Optionally transcribes the uploaded footage locally with Whisper (the model downloads on first use).
+- Offers three reusable visual templates, with a custom headline and creator handle.
+- Renders Whisper word-timed animated captions or a creator-edited static caption.
+- Creates a single branded highlight or a multi-clip vertical montage.
+- Exports a matching 1080×1920 JPEG Reel cover with the same headline and handle.
 - Renders H.264/AAC, 1080×1920, 30fps MP4 with captions in Instagram's safe lower area.
 - Creates a download-ready video plus caption and hashtag copy. OpenAI is optional; it has a useful offline fallback.
 

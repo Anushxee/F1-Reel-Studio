@@ -2,12 +2,25 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 import tempfile
 
 
-def transcribe(video_path: str | Path, start: float | None = None, duration: float | None = None) -> str:
+@dataclass(frozen=True)
+class CaptionCue:
+    """A timed caption fragment relative to the exported highlight."""
+
+    start: float
+    end: float
+    text: str
+
+
+def transcribe_with_cues(
+    video_path: str | Path, start: float | None = None, duration: float | None = None
+) -> tuple[str, list[CaptionCue]]:
+    """Transcribe a source segment and return Whisper's word-level timings."""
     try:
         import whisper
     except ImportError as exc:
@@ -29,10 +42,35 @@ def transcribe(video_path: str | Path, start: float | None = None, duration: flo
     model_name = os.getenv("WHISPER_MODEL", "base")
     try:
         model = whisper.load_model(model_name)
-        result = model.transcribe(input_path, fp16=False, verbose=False)
+        result = model.transcribe(input_path, fp16=False, verbose=False, word_timestamps=True)
     except Exception as exc:
         raise RuntimeError(f"Whisper could not transcribe this file: {exc}") from exc
     finally:
         if temporary_audio:
             temporary_audio.unlink(missing_ok=True)
-    return str(result.get("text", "")).strip()
+    text = str(result.get("text", "")).strip()
+    cues: list[CaptionCue] = []
+    for segment in result.get("segments", []):
+        for word in segment.get("words", []):
+            word_text = str(word.get("word", "")).strip()
+            if word_text:
+                cues.append(
+                    CaptionCue(
+                        max(0.0, float(word.get("start", 0.0))),
+                        max(0.1, float(word.get("end", 0.1))),
+                        word_text,
+                    )
+                )
+    # Older Whisper backends can omit word data. Keep the creator workflow
+    # useful by distributing the words across the detected segment duration.
+    if not cues and text:
+        words = text.split()
+        total = duration or max(1.0, len(words) * 0.38)
+        step = total / len(words)
+        cues = [CaptionCue(index * step, min(total, (index + 1) * step), word) for index, word in enumerate(words)]
+    return text, cues
+
+
+def transcribe(video_path: str | Path, start: float | None = None, duration: float | None = None) -> str:
+    """Backward-compatible text-only transcription helper."""
+    return transcribe_with_cues(video_path, start, duration)[0]

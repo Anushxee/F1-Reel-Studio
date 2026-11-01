@@ -9,8 +9,8 @@ import streamlit as st
 
 from agents.highlights import detect_highlights
 from agents.metadata import create_metadata
-from agents.reel_builder import render_reel, write_srt
-from agents.transcription import transcribe
+from agents.reel_builder import THEMES, render_cover, render_montage, render_reel, write_ass_overlay, write_srt
+from agents.transcription import transcribe_with_cues
 
 api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
@@ -23,6 +23,13 @@ with st.sidebar:
     clip_count = st.slider("Highlights to review", 1, 5, 3)
     clip_seconds = st.slider("Length per reel", 8, 45, 18)
     topic = st.text_input("Context", placeholder="e.g. Last-lap overtake at Monza")
+    st.divider()
+    st.subheader("Creator template")
+    theme_name = st.selectbox("Visual style", list(THEMES), index=0)
+    headline = st.text_input("Headline", placeholder="e.g. LAST-LAP CHAOS")
+    brand_handle = st.text_input("Brand handle", value="@yourhandle")
+    caption_mode = st.selectbox("Caption treatment", ["Word-timed (Whisper)", "Static caption", "No captions"])
+    montage_mode = st.toggle("Create a multi-clip montage", value=False)
     use_ai = st.toggle("Refine social copy with OpenAI", value=bool(api_key))
 
 uploaded = st.file_uploader("Upload MP4, MOV, or MKV footage", type=["mp4", "mov", "mkv"])
@@ -52,29 +59,63 @@ if highlights:
     labels = [f"Moment {i + 1}: {item.start:.1f}s–{item.end:.1f}s · {item.reason}" for i, item in enumerate(highlights)]
     index = st.radio("Candidate", range(len(labels)), format_func=lambda i: labels[i])
     selected = highlights[index]
+    montage_indices: list[int] = [index]
+    if montage_mode:
+        montage_indices = st.multiselect(
+            "Clips to include in montage",
+            range(len(labels)),
+            default=list(range(min(3, len(labels)))),
+            format_func=lambda item: labels[item],
+            help="Montages use the selected branded template. Word-timed captions are exported with the selected single clip.",
+        )
     caption_key = f"caption_{index}"
+    caption_input_key = f"caption_input_{index}"
+    cue_key = f"cues_{index}"
     if st.button("Transcribe selected moment with Whisper"):
         # Whisper accepts the source video. It is intentionally opt-in because the
         # first model download can take time and requires a network connection.
         with st.spinner("Transcribing locally with Whisper…"):
             try:
-                st.session_state[caption_key] = transcribe(source, selected.start, selected.end - selected.start)
-                st.success("Transcript ready. Edit it down to the strongest line for the reel.")
+                transcript_text, cues = transcribe_with_cues(source, selected.start, selected.end - selected.start)
+                st.session_state[caption_key] = transcript_text
+                st.session_state[caption_input_key] = transcript_text
+                st.session_state[cue_key] = cues
+                st.success("Word timings are ready. Edit the text if you want a simpler static caption.")
             except Exception as exc:
                 st.warning(str(exc))
     transcript = st.text_area(
         "Caption text (optional)",
-        value=st.session_state.get(caption_key, ""),
-        key=f"caption_input_{index}",
+        key=caption_input_key,
         placeholder="Add a short, accurate caption. Keep it concise for mobile viewing.",
     )
-    if st.button("Render Instagram Reel", type="primary"):
-        final_path = work_dir / f"f1_reel_{index + 1}.mp4"
-        srt = write_srt(transcript, selected.end - selected.start, work_dir / "caption.srt")
+    render_label = "Render branded montage" if montage_mode else "Render branded Instagram Reel"
+    if st.button(render_label, type="primary"):
+        chosen_highlights = [highlights[item] for item in montage_indices] if montage_mode else [selected]
+        if not chosen_highlights:
+            st.error("Choose at least one clip for the montage.")
+            st.stop()
+        render_duration = sum(item.end - item.start for item in chosen_highlights) if montage_mode else selected.end - selected.start
+        generated_headline = headline.strip() or topic.strip() or "F1 REEL"
+        overlay_ass = write_ass_overlay(
+            st.session_state.get(cue_key, []) if caption_mode == "Word-timed (Whisper)" and not montage_mode else [],
+            render_duration,
+            work_dir / f"overlay_{upload_id}_{index}.ass",
+            generated_headline,
+            brand_handle,
+            theme_name,
+        )
+        srt = write_srt(transcript, selected.end - selected.start, work_dir / f"caption_{upload_id}_{index}.srt") if caption_mode == "Static caption" and not montage_mode else None
+        final_path = work_dir / (f"f1_montage_{upload_id}.mp4" if montage_mode else f"f1_reel_{upload_id}_{index + 1}.mp4")
+        cover_path = work_dir / (f"f1_montage_cover_{upload_id}.jpg" if montage_mode else f"f1_reel_cover_{upload_id}_{index + 1}.jpg")
         with st.spinner("Rendering 1080 × 1920 MP4…"):
             try:
-                render_reel(source, selected, final_path, srt)
+                if montage_mode:
+                    render_montage(source, chosen_highlights, final_path, overlay_ass)
+                else:
+                    render_reel(source, selected, final_path, srt, overlay_ass)
+                render_cover(source, chosen_highlights[0], cover_path, overlay_ass)
                 st.session_state.final_path = str(final_path)
+                st.session_state.cover_path = str(cover_path)
                 st.session_state.metadata = create_metadata(transcript, topic, use_ai, api_key)
             except Exception as exc:
                 st.error(f"Render failed: {exc}")
@@ -86,6 +127,12 @@ if final_path and Path(final_path).exists():
     st.video(final_path)
     with open(final_path, "rb") as video_file:
         st.download_button("Download MP4", video_file, file_name="instagram-ready-f1-reel.mp4", mime="video/mp4")
+    cover_path = st.session_state.get("cover_path")
+    if cover_path and Path(cover_path).exists():
+        st.subheader("Reel cover")
+        st.image(cover_path, caption="Vertical cover image")
+        with open(cover_path, "rb") as cover_file:
+            st.download_button("Download cover image", cover_file, file_name="instagram-reel-cover.jpg", mime="image/jpeg")
     metadata = st.session_state.get("metadata", {})
     st.subheader("Publish pack")
     st.text_area("Caption", value=metadata.get("caption", ""), height=110)
